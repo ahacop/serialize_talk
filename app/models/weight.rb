@@ -3,16 +3,6 @@ class Weight
 
   attr_reader :pounds
 
-  class << self
-    def dump(weight)
-      weight.pounds
-    end
-
-    def load(pounds)
-      new(pounds)
-    end
-  end
-
   def initialize(pounds)
     @pounds = pounds
   end
