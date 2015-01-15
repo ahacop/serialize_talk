@@ -9,13 +9,9 @@ class Person < ActiveRecord::Base
       suffix: :suffix
     }
 
-  def weight
-    @weight ||= Weight.new(weight_value)
-  end
+  composed_of :weight,
+    allow_nil: true,
+    mapping: %w(weight_value pounds)
 
-  def weight=(other_weight)
-    self.weight_value = other_weight.pounds
-
-    @weight = other_weight
-  end
+  scope :weighing_less_than, -> (weight) { where('weight_value < ?', weight.pounds) }
 end
