@@ -1,23 +1,12 @@
 require 'rails_helper'
 
 RSpec.describe Person, :type => :model do
-  let(:person) { Person.new(weight: 150) }
+  it 'serializes and deserializes weight' do
+    weight = Weight.new(150)
+    person = described_class.create(weight: weight)
 
-  describe '#weight_in_pounds' do
-    it "returns the person's weight in pounds" do
-      expect(person.weight_in_pounds).to be(150)
-    end
-  end
+    person.reload
 
-  describe '#weight_in_kilograms' do
-    it "returns the person's weight in kilograms" do
-      expect(person.weight_in_kilograms).to be(68)
-    end
-  end
-
-  describe '#weight_in_stone' do
-    it "returns the person's weight in stone" do
-      expect(person.weight_in_stone).to be(11)
-    end
+    expect(person.weight.pounds).to eq(150)
   end
 end
