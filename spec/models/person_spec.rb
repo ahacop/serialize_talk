@@ -1,28 +1,12 @@
 require 'rails_helper'
 
 RSpec.describe Person, :type => :model do
-  describe 'name methods' do
-    let(:person) do
-      described_class.new(
-        title: 'Mr.',
-        first_name: 'First',
-        middle_name: 'Middle',
-        last_name: 'Last',
-        suffix: 'Jr.'
-      )
-    end
+  it 'serializes and deserializes name' do
+    name = Name.new('Mr.', 'First', 'Middle', 'Last', 'Jr.')
+    described_class.create(name: name)
 
-    describe '#initials' do
-      it "returns the person's initials" do
-        expect(person.initials).to eq('FML')
-      end
-    end
-
-    describe '#full_name' do
-      it "returns the person's full name" do
-        expect(person.full_name).to eq('Mr. First Middle Last, Jr.')
-      end
-    end
+    person = Person.last
+    expect(person.name).to eq(name)
   end
 
   it 'serializes and deserializes weight' do
