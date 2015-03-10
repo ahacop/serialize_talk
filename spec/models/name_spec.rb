@@ -27,15 +27,14 @@ describe Name do
     end
   end
 
-  describe '#==' do
-    it 'returns true if the name is the same' do
-      other_person = described_class.new('Mr.', 'First', 'Middle', 'Last', 'Jr.')
-      expect(person).to eq(other_person)
-    end
+  describe 'equality' do
+    let(:same_name) { described_class.new('Mr.', 'First', 'Middle', 'Last', 'Jr.') }
+    let(:different_name) { described_class.new('Mr.', 'First', 'Middle', 'Last', 'Sr.') }
+    subject { person }
 
-    it 'returns false if the name is different' do
-      other_person = described_class.new('Mr.', 'First', 'Middle', 'Last', 'Sr.')
-      expect(person).to_not eq(other_person)
+    describe '#==' do
+      it { is_expected.to eq(same_name) }
+      it { is_expected.to_not eq(different_name) }
     end
   end
 end
