@@ -19,6 +19,10 @@ class Weight
     self.class == other.class && pounds <=> other.pounds
   end
 
+  def eql?(other)
+    self == other
+  end
+
   def hash
     pounds.hash
   end

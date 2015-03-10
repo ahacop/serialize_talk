@@ -45,4 +45,9 @@ describe Weight do
       it { is_expected.to eq(Weight.new(150)) }
     end
   end
+
+  it "uniq's an array of weights properly" do
+    weights = 3.times.map { weight.dup }
+    expect(weights.uniq).to contain_exactly(weight.dup)
+  end
 end
