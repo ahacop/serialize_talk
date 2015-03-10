@@ -14,8 +14,11 @@
 # [fit] Fat
 # [fit] Models
 
-^ tendancy to attract business logic associated with the model
-^ Objects that are inherently responsible for persistence become the de facto owner of all business logic as well.
+^ One technique for reducing the size of your models
+^ Why are fat models bad? They have so much code it's hard to reason
+^ about the object, churn.
+^ ActiveRecord is great but because ARs models are responsible for persistence they become the de facto owner
+^ of all business logic as well.
 
 ---
 
@@ -29,7 +32,7 @@
 
 -- Martin Fowler, "Patterns of Enterprise Application Architecture", **inventor** of the Active Record pattern
 
-^ the Rails “conventions” that don’t scale, or, more specifically, the lack of conventions for managing complexity beyond what the Active Record pattern can elegantly handle
+^ Rails “conventions” that don’t scale, or, more specifically, the lack of conventions for managing complexity beyond what the Active Record pattern can elegantly handle
 
 ---
 
@@ -39,14 +42,18 @@
 
 ---
 
-## There should never be more than one reason for a class to change
+# Single Responsibility Principle
+
+There should never be more than *one* reason for a class to change
 
 ^ If you can think of more than one motive for changing a class, then that class has more than one responsibility
 ^ SRP reduces churn and makes for more robust classes (i.e. classes that do not change do not break).
 
 ---
 
-## ~~All the methods that have to do with a person go into the Person model~~
+# Single Responsibility Principle
+
+**Not**: All the methods that do something with a person go into the Person model
 
 ---
 
@@ -56,8 +63,12 @@ class Person < ActiveRecord::Base
     first_name.chr + middle_name.chr + last_name.chr
   end
 
-  def full_name
-    "#{title} #{first_name} #{middle_name} #{last_name}, #{suffix}"
+  def armenian?
+    if last_name.end_with?('ian')
+      'probably'
+    else
+      'probably not'
+    end
   end
 
   def weight_in_pounds
@@ -73,8 +84,6 @@ class Person < ActiveRecord::Base
   end
 end
 ```
-
-^ name stuff may be presentation concern
 
 ---
 
@@ -94,8 +103,12 @@ class Person < ActiveRecord::Base
     first_name.chr + middle_name.chr + last_name.chr
   end
 
-  def full_name
-    "#{title} #{first_name} #{middle_name} #{last_name}, #{suffix}"
+  def armenian?
+    if last_name.end_with?('ian')
+      'probably'
+    else
+      'probably not'
+    end
   end
 
   def weight_in_pounds
@@ -110,6 +123,7 @@ class Person < ActiveRecord::Base
     (weight * 0.07142).round
   end
 end
+
 ```
 
 ^ string manipulation if View concern -> view helper -> "good" separation
@@ -147,13 +161,13 @@ persistance system
 
 # Value Objects
 
-^ is a small object that represents a simple entity whose equality is
-not based on identity
+- A small object that represents a simple value whose equality is based on its values rather than its identity
 
-^ Examples: addresses, money, names.
+- Immutable
 
-^ Our domain is a good example: Names are the same, but people are
-different.
+- Examples: addresses, money, names.
+
+^ Two people may have the same name, but they are still different people.
 
 ^ Value objects should be immutable: this is required for the
 implicit contract that two value objects created equal, should remain
@@ -161,19 +175,278 @@ equal.
 
 ---
 
+# Identity equality in Ruby
+
+```bash
+> a = Object.new
+> b = Object.new
+
+> a.object_id
+=> 70288883508240
+> b.object_id
+=> 70288892808780
+
+> a == b
+=> false
+```
+
+---
+
+# Identity equality in ActiveRecord
+
+```bash
+> george_foreman = Person.create
+> george_foreman.id
+=> 1
+
+> ara = Person.create
+> ara.id
+=> 2
+
+> ara == george_foreman
+=> false
+```
+
+---
+
+# Identity equality in ActiveRecord
+
+```bash
+> george_foreman2 = Person.find(george_foreman.id)
+> george_foreman2.id
+=> 1
+
+> george_foreman2 == george_foreman
+=> true
+```
+
+---
+
+# Identity equality in ActiveRecord
+
+```bash
+> george_foreman.object_id
+=> 70288888679260
+
+> george_foreman2.object_id
+=> 70288855436880
+
+> george_foreman.object_id == george_foreman2.object_id
+=> false
+```
+
+---
+
+# Identity equality in ActiveRecord
+
+```bash
+> george_foreman_jr = george_foreman.dup
+> george_foreman_jr.id
+=> nil
+
+> george_foreman_jr == george_foreman
+=> false
+```
+
+---
+
+# Identity equality in ActiveRecord
+
+```bash
+> george_foreman_iii = george_foreman.clone
+> george_foreman_iii.id
+=> 1
+> george_foreman_iii == george_foreman
+=> true
+```
+
+---
+
+# Identity equality in ActiveRecord
+
+```ruby
+def ==(comparison_object)
+  super ||
+    comparison_object.instance_of?(self.class) &&
+    !id.nil? &&
+    comparison_object.id == id
+  end
+  alias :eql? :==
+```
+
+---
+
+# Extract Weight from Person
+
+```ruby
+class Weight
+  attr_reader :pounds
+
+  def initialize(pounds)
+    @pounds = pounds
+  end
+
+  def kilograms
+    (pounds * 0.453592).round
+  end
+
+  def stone
+    (pounds * 0.07142).round
+  end
+end
+```
+
+---
+
+# Weight equality
+
+```bash
+> buck_fifty = Weight.new(150)
+> buck_fifty.pounds
+=> 150
+> buck_fifty.object_id
+=> 70288888679260
+
+> buck_fifty2 = Weight.new(150)
+> buck_fifty2.pounds
+=> 150
+> buck_fifty2.object_id
+=> 70288855436880
+```
+
+---
+
+# Weight equality
+```bash
+> buck_fifty.pounds == buck_fifty2.pounds
+=> true
+
+> buck_fifty.object_id == buck_fifty2.object_id
+=> false
+
+> buck_fifty == buck_fifty2
+=> false
+```
+
+---
+
+# Weight equality
+```bash
+> weights = [Weight.new(150), Weight.new(150), Weight.new(150)]
+> weights.uniq.length
+=> 3
+
+> pounds_values = [150, 150, 150]
+> pounds_values.uniq.length
+=> 1
+```
+
+---
+
+# Weight as a value object
+
 ```ruby
 class Weight
   include Comparable
 
   def <=>(other)
-    self.class == other.class && pounds <=> other.pounds
+    other.instance_of?(self.class) && pounds <=> other.pounds
+  end
+
+  def eql?(other)
+    self == other
   end
 
   def hash
-    pounds.hash
+    @hash ||= pounds.hash
   end
 end
 ```
+
+^ There are many other Ruby methods that need to check equality and they
+don't all use #== due to speed concerns.
+^ Array#uniq and Hash lookups
+^ The C code used by the Object class’s implementation of the hash method
+^ gets the C pointer value for the target object passes it to hashing function
+
+---
+
+# Value equality for Weight
+
+```bash
+> buck_fifty = Weight.new(150)
+> buck_fifty2 = Weight.new(150)
+
+> buck_fifty.object_id == buck_fifty2.object_id
+=> false
+
+> buck_fifty == buck_fifty2
+=> true
+```
+
+---
+
+# Value equality for Weight
+
+```bash
+> weights = [Weight.new(150), Weight.new(150), Weight.new(150)]
+> weights.uniq.length
+=> 1
+```
+
+---
+
+# Name as a value object
+
+```ruby
+class Name
+  attr_reader :title, :first, :middle, :last, :suffix
+
+  def initialize(title, first, middle, last, suffix)
+    @title, @first, @middle, @last, @suffix = title, first, middle, last, suffix
+  end
+
+  def initials
+    first.chr + middle.chr + last.chr
+  end
+
+  def armenian?
+    if last.end_with?('ian')
+      'probably'
+    else
+      'probably not'
+    end
+  end
+```
+
+---
+
+# Name as a value object
+
+```ruby
+  def ==(other)
+    other.instance_of?(self.class) &&
+      title == other.title &&
+      first == other.first &&
+      middle == other.middle &&
+      last == other.last &&
+      suffix == other.suffix
+  end
+  alias :eql? :==
+
+  def hash
+    @hash ||= title.hash ^ first.hash ^ middle.hash ^ last.hash ^ suffix.hash
+  end
+end
+```
+
+---
+
+# [fit] 3 Ways to Serialize Value Objects
+
+1. Serialize
+1. Virtual Attributes
+1. Composed_of
 
 ---
 
@@ -181,24 +454,6 @@ end
 
 ^ a class method that allows an attribute to be saved in the database and
 later retrieved as an object.
-
----
-
-```ruby
-class Person < ActiveRecord::Base
-  def weight_in_pounds
-    weight
-  end
-
-  def weight_in_kilograms
-    (weight * 0.453592).round
-  end
-
-  def weight_in_stone
-    (weight * 0.07142).round
-  end
-end
-```
 
 ---
 
@@ -273,7 +528,11 @@ class Weight
   end
 
   def <=>(other)
-    self.class == other.class && pounds <=> other.pounds
+    other.instance_of?(self.class) && pounds <=> other.pounds
+  end
+
+  def eql?(other)
+    self == other
   end
 
   def hash
@@ -311,11 +570,15 @@ class Weight
   end
 
   def stone
-    (pounds * 0.0714286).round
+    (pounds * 0.07142).round
   end
 
   def <=>(other)
-    self.class == other.class && pounds <=> other.pounds
+    other.instance_of?(self.class) && pounds <=> other.pounds
+  end
+
+  def eql?(other)
+    self == other
   end
 
   def hash
@@ -399,38 +662,14 @@ class Name
   attr_reader :title, :first, :middle, :last, :suffix
 
   def initialize(title, first, middle, last, suffix)
-    @title, @first, @middle, @last, @suffix = title, first, middle,
-last, suffix
+    @title, @first, @middle, @last, @suffix = title, first, middle, last, suffix
   end
 
-  def initials
-    first.chr + middle.chr + last.chr
-  end
-
-  def full_name
-    "#{title} #{first} #{middle} #{last}, #{suffix}"
-  end
-```
-
----
-
-```ruby
-  def ==(other)
-    self.class == other.class &&
-      title == other.title &&
-      first == other.first &&
-      middle == other.middle &&
-      last == other.last &&
-      suffix == other.suffix
-  end
-
-  def hash
-    @hash ||= [title, first, middle, last, suffix].hash
-  end
+  # other stuff...
 end
 ```
 
 ---
 
-![autoplay loop mute](http://www.youtube.com/watch?v=mDMs4gLn9rc)
+![autoplay loop mute](capybara.mp4)
 # Questions?
