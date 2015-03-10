@@ -13,6 +13,14 @@ class Name
     "#{title} #{first} #{middle} #{last}, #{suffix}"
   end
 
+  def armenian?
+    if last.end_with?('ian')
+      'probably'
+    else
+      'probably not'
+    end
+  end
+
   def ==(other)
     self.class == other.class &&
       title == other.title &&
