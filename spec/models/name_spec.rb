@@ -36,5 +36,10 @@ describe Name do
       it { is_expected.to eq(same_name) }
       it { is_expected.to_not eq(different_name) }
     end
+
+    it "uniq's an array of names properly" do
+      names = 3.times.map { name.dup }
+      expect(names.uniq).to contain_exactly(name.dup)
+    end
   end
 end

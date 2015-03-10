@@ -29,4 +29,9 @@ class Name
       last == other.last &&
       suffix == other.suffix
   end
+  alias :eql? :==
+
+  def hash
+    @hash ||= title.hash ^ first.hash ^ middle.hash ^ last.hash ^ suffix.hash
+  end
 end
